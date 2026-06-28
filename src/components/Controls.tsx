@@ -1,69 +1,40 @@
-import React, { useRef } from "react";
+import React from "react";
 import { 
-  ZoomIn, 
-  Move, 
-  RotateCw, 
-  RefreshCw, 
   Download, 
   Upload, 
   Type, 
   DollarSign, 
   CalendarDays,
-  Sparkles,
   Smile
 } from "lucide-react";
 
 interface ControlsProps {
-  scale: number;
-  posX: number;
-  posY: number;
-  rotation: number;
   customSlogan: string;
   customTicketPrice: string;
   customDate: string;
   hasPhoto: boolean;
   isDownloading: boolean;
-  onScaleChange: (val: number) => void;
-  onPosXChange: (val: number) => void;
-  onPosYChange: (val: number) => void;
-  onRotationChange: (val: number) => void;
   onSloganChange: (val: string) => void;
   onTicketPriceChange: (val: string) => void;
   onDateChange: (val: string) => void;
-  onFileSelect: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  onReset: () => void;
+  onTriggerUpload: () => void;
   onDownload: () => void;
   onLoadExamplePhoto: () => void;
 }
 
 export const Controls: React.FC<ControlsProps> = ({
-  scale,
-  posX,
-  posY,
-  rotation,
   customSlogan,
   customTicketPrice,
   customDate,
   hasPhoto,
   isDownloading,
-  onScaleChange,
-  onPosXChange,
-  onPosYChange,
-  onRotationChange,
   onSloganChange,
   onTicketPriceChange,
   onDateChange,
-  onFileSelect,
-  onReset,
+  onTriggerUpload,
   onDownload,
   onLoadExamplePhoto
 }) => {
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const triggerFileSelect = () => {
-    fileInputRef.current?.click();
-  };
-
   return (
     <div className="w-full max-w-[540px] bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-6 text-white backdrop-blur-sm">
       
@@ -72,19 +43,11 @@ export const Controls: React.FC<ControlsProps> = ({
         <label className="block text-xs font-bold uppercase tracking-wider text-slate-400">
           Étape 1 : Choisissez votre photo
         </label>
-        
-        <input 
-          type="file" 
-          ref={fileInputRef} 
-          onChange={onFileSelect} 
-          accept="image/*" 
-          className="hidden" 
-        />
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <button
             type="button"
-            onClick={triggerFileSelect}
+            onClick={onTriggerUpload}
             className="flex items-center justify-center space-x-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold py-3 px-4 rounded-xl shadow-lg shadow-amber-500/20 active:scale-[0.98] transition duration-150 cursor-pointer text-sm"
           >
             <Upload className="w-4.5 h-4.5" />
@@ -102,121 +65,10 @@ export const Controls: React.FC<ControlsProps> = ({
         </div>
       </div>
 
-      {/* Adjustments (Only active when a photo has been uploaded) */}
-      <div className={`space-y-4 transition-all duration-300 ${hasPhoto ? 'opacity-100' : 'opacity-50 pointer-events-none'}`}>
-        <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-          <label className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center space-x-1.5">
-            <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-            <span>Étape 2 : Ajustez la photo dans le cercle</span>
-          </label>
-          {hasPhoto && (
-            <button
-              onClick={onReset}
-              className="text-xs text-amber-400 hover:text-amber-300 flex items-center space-x-1 transition cursor-pointer"
-            >
-              <RefreshCw className="w-3 h-3" />
-              <span>Réinitialiser</span>
-            </button>
-          )}
-        </div>
-
-        {/* Zoom Slider */}
-        <div className="space-y-1.5">
-          <div className="flex justify-between text-xs font-medium">
-            <span className="text-slate-400 flex items-center space-x-1">
-              <ZoomIn className="w-3.5 h-3.5" />
-              <span>Zoom (Échelle)</span>
-            </span>
-            <span className="text-amber-400 font-mono font-semibold">
-              {scale.toFixed(2)}x
-            </span>
-          </div>
-          <input
-            type="range"
-            min="0.3"
-            max="4"
-            step="0.05"
-            value={scale}
-            disabled={!hasPhoto}
-            onChange={(e) => onScaleChange(parseFloat(e.target.value))}
-            className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-amber-500"
-          />
-        </div>
-
-        {/* X Offset Slider */}
-        <div className="space-y-1.5">
-          <div className="flex justify-between text-xs font-medium">
-            <span className="text-slate-400 flex items-center space-x-1">
-              <Move className="w-3.5 h-3.5" />
-              <span>Déplacement Horizontal (X)</span>
-            </span>
-            <span className="text-amber-400 font-mono font-semibold">
-              {posX > 0 ? `+${posX}` : posX} px
-            </span>
-          </div>
-          <input
-            type="range"
-            min="-150"
-            max="150"
-            step="1"
-            value={posX}
-            disabled={!hasPhoto}
-            onChange={(e) => onPosXChange(parseInt(e.target.value))}
-            className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-amber-500"
-          />
-        </div>
-
-        {/* Y Offset Slider */}
-        <div className="space-y-1.5">
-          <div className="flex justify-between text-xs font-medium">
-            <span className="text-slate-400 flex items-center space-x-1">
-              <Move className="w-3.5 h-3.5 rotate-90" />
-              <span>Déplacement Vertical (Y)</span>
-            </span>
-            <span className="text-amber-400 font-mono font-semibold">
-              {posY > 0 ? `+${posY}` : posY} px
-            </span>
-          </div>
-          <input
-            type="range"
-            min="-150"
-            max="150"
-            step="1"
-            value={posY}
-            disabled={!hasPhoto}
-            onChange={(e) => onPosYChange(parseInt(e.target.value))}
-            className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-amber-500"
-          />
-        </div>
-
-        {/* Rotation Slider */}
-        <div className="space-y-1.5">
-          <div className="flex justify-between text-xs font-medium">
-            <span className="text-slate-400 flex items-center space-x-1">
-              <RotateCw className="w-3.5 h-3.5" />
-              <span>Rotation</span>
-            </span>
-            <span className="text-amber-400 font-mono font-semibold">
-              {rotation}°
-            </span>
-          </div>
-          <input
-            type="range"
-            min="0"
-            max="360"
-            step="1"
-            value={rotation}
-            disabled={!hasPhoto}
-            onChange={(e) => onRotationChange(parseInt(e.target.value))}
-            className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-amber-500"
-          />
-        </div>
-      </div>
-
-      {/* Step 3: Customize Texts */}
+      {/* Step 2: Customize Texts */}
       <div className="space-y-4 border-t border-slate-800 pt-4">
         <label className="block text-xs font-bold uppercase tracking-wider text-slate-400">
-          Étape 3 : Personnalisez les textes de l'affiche
+          Étape 2 : Personnalisez les textes de l'affiche
         </label>
 
         <div className="space-y-3">

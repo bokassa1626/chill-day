@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { Poster } from "./components/Poster";
 import { Controls } from "./components/Controls";
 import { AdminPanel } from "./components/AdminPanel";
@@ -14,6 +14,9 @@ import {
   Ticket
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
+
+// Cache for sanitized stylesheet contents to make subsequent downloads nearly instant
+const sanitizedCssCache = new Map<string, string>();
 
 export default function App() {
   // State for image customizations
@@ -95,6 +98,28 @@ export default function App() {
   });
 
   const posterRef = useRef<HTMLDivElement>(null);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [previewScale, setPreviewScale] = useState<number>(1);
+
+  const triggerFileSelect = () => {
+    fileInputRef.current?.click();
+  };
+
+  useEffect(() => {
+    if (!wrapperRef.current) return;
+    const resizeObserver = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const width = entry.contentRect.width;
+        // The poster is statically 540px wide inside Poster.tsx.
+        // We scale it down proportionally to fit the available container width.
+        const calculatedScale = Math.min(1, width / 540);
+        setPreviewScale(calculatedScale);
+      }
+    });
+    resizeObserver.observe(wrapperRef.current);
+    return () => resizeObserver.disconnect();
+  }, []);
 
   // Handle uploading user file
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -111,12 +136,12 @@ export default function App() {
     reader.onload = () => {
       if (typeof reader.result === "string") {
         setPhotoUrl(reader.result);
-        // Reset positioning on new image upload
-        setScale(1.2);
+        // Reset positioning to perfect automatic fit-fill on new image upload
+        setScale(1);
         setPosX(0);
         setPosY(0);
         setRotation(0);
-        setSuccessMessage("Photo importée avec succès ! Ajustez-la maintenant.");
+        setSuccessMessage("Photo importée avec succès ! Ajustée automatiquement pour remplir le cercle de l'affiche.");
         setTimeout(() => setSuccessMessage(null), 4000);
       }
     };
@@ -131,17 +156,17 @@ export default function App() {
     // A cool portrait of a smiling guy that fits the poster vibes perfectly
     const sampleUrl = "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=600&auto=format&fit=crop&q=80";
     setPhotoUrl(sampleUrl);
-    setScale(1.15);
+    setScale(1);
     setPosX(0);
-    setPosY(-10);
+    setPosY(0);
     setRotation(0);
-    setSuccessMessage("Photo d'exemple chargée ! N'hésitez pas à l'ajuster ou à importer la vôtre.");
+    setSuccessMessage("Photo d'exemple chargée ! Ajustée automatiquement pour un rendu optimal.");
     setTimeout(() => setSuccessMessage(null), 4000);
   };
 
   // Reset positioning states
   const handleReset = () => {
-    setScale(1.2);
+    setScale(1);
     setPosX(0);
     setPosY(0);
     setRotation(0);
@@ -211,80 +236,99 @@ export default function App() {
     setIsDownloading(true);
     setErrorMessage(null);
 
-    let restoreStylesheets: (() => void) | null = null;
+    // Keep track of all modifications to restore them perfectly afterward
+    const savedStyles: { element: HTMLStyleElement; originalText: string }[] = [];
+    const savedLinks: { element: HTMLLinkElement; originalDisabled: boolean; tempStyle?: HTMLStyleElement }[] = [];
+    const inlineStyledElements: { element: HTMLElement; originalStyle: string }[] = [];
 
     try {
-      // 1. Temporarily sanitize stylesheets to remove "oklch" colors which break html2canvas
-      const styleTags = Array.from(document.querySelectorAll("style"));
-      const linkTags = Array.from(document.querySelectorAll("link[rel='stylesheet']")) as HTMLLinkElement[];
-      
-      const savedStyles: { element: HTMLStyleElement; originalContent: string | null }[] = [];
-      const savedLinks: { element: HTMLLinkElement; originalDisabled: boolean; tempStyleElement?: HTMLStyleElement }[] = [];
-
-      // Sanitize <style> tags
-      for (const style of styleTags) {
-        const content = style.textContent;
-        savedStyles.push({ element: style, originalContent: content });
-        if (content && content.includes("oklch")) {
-          // Replace oklch(...) colors with a simple fallback RGB color that html2canvas can parse without throwing
-          style.textContent = content.replace(/oklch\([^)]+\)/g, "rgb(30, 41, 59)");
+      // 1. Sanitize all inline styles in the DOM to avoid oklch/oklab
+      const allElements = document.getElementsByTagName("*");
+      for (let i = 0; i < allElements.length; i++) {
+        const el = allElements[i] as HTMLElement;
+        if (el.style && el.style.cssText) {
+          const cssText = el.style.cssText;
+          if (cssText.includes("oklch") || cssText.includes("oklab")) {
+            inlineStyledElements.push({ element: el, originalStyle: cssText });
+            el.style.cssText = cssText.replace(/okl(ch|ab)\((?:[^()]+|\([^()]*\))*\)/g, "rgb(30, 41, 59)");
+          }
         }
       }
 
-      // Sanitize <link> tags (e.g. built production styles)
+      // 2. Sanitize all style tags synchronously
+      const styleTags = Array.from(document.querySelectorAll("style"));
+      for (const style of styleTags) {
+        const originalText = style.textContent || "";
+        if (originalText.includes("oklch") || originalText.includes("oklab")) {
+          savedStyles.push({ element: style, originalText });
+          style.textContent = originalText.replace(/okl(ch|ab)\((?:[^()]+|\([^()]*\))*\)/g, "rgb(30, 41, 59)");
+        }
+      }
+
+      // 3. Sanitize and disable all link tags containing oklch/oklab
+      const linkTags = Array.from(document.querySelectorAll("link[rel='stylesheet']")) as HTMLLinkElement[];
       for (const link of linkTags) {
+        const href = link.href;
         savedLinks.push({ element: link, originalDisabled: link.disabled });
+        
         try {
-          const response = await fetch(link.href);
-          if (response.ok) {
-            let text = await response.text();
-            if (text.includes("oklch")) {
-              text = text.replace(/oklch\([^)]+\)/g, "rgb(30, 41, 59)");
-              
-              // Disable the original link
-              link.disabled = true;
-              
-              // Inject sanitized temporary style element
-              const tempStyle = document.createElement("style");
-              tempStyle.textContent = text;
-              tempStyle.setAttribute("data-temp-canvas-style", "true");
-              document.head.appendChild(tempStyle);
-              
-              savedLinks[savedLinks.length - 1].tempStyleElement = tempStyle;
+          // Attempt to read rules synchronously first
+          let cssText = "";
+          const sheet = link.sheet as CSSStyleSheet | null;
+          if (sheet) {
+            const rules = sheet.cssRules || sheet.rules;
+            if (rules) {
+              for (let i = 0; i < rules.length; i++) {
+                cssText += rules[i].cssText + "\n";
+              }
             }
           }
+
+          // If synchronous read failed, check cache or fetch asynchronously
+          if (!cssText && href) {
+            cssText = sanitizedCssCache.get(href) || "";
+            if (!cssText) {
+              const response = await fetch(href);
+              if (response.ok) {
+                cssText = await response.text();
+                sanitizedCssCache.set(href, cssText);
+              }
+            }
+          }
+
+          if (cssText && (cssText.includes("oklch") || cssText.includes("oklab"))) {
+            const sanitizedText = cssText.replace(/okl(ch|ab)\((?:[^()]+|\([^()]*\))*\)/g, "rgb(30, 41, 59)");
+            
+            // Create a temp style element with the sanitized rules
+            const tempStyle = document.createElement("style");
+            tempStyle.textContent = sanitizedText;
+            tempStyle.setAttribute("data-temp-canvas-style", "true");
+            
+            // Insert the temp style and disable the original link tag
+            link.parentNode?.insertBefore(tempStyle, link);
+            link.disabled = true;
+            
+            // Update saved link entry with the temp style
+            savedLinks[savedLinks.length - 1].tempStyle = tempStyle;
+          }
         } catch (e) {
-          console.warn("Skipping link tag sanitization (CORS or external link):", link.href, e);
+          console.warn("Skipping link tag sanitization (CORS or network error):", href, e);
         }
       }
 
-      // Define restore function to run post-generation
-      restoreStylesheets = () => {
-        // Restore original style content
-        for (const { element, originalContent } of savedStyles) {
-          element.textContent = originalContent;
-        }
-        // Restore link tags and remove temporary styles
-        for (const { element, originalDisabled, tempStyleElement } of savedLinks) {
-          element.disabled = originalDisabled;
-          if (tempStyleElement) {
-            tempStyleElement.remove();
-          }
-        }
-      };
-
-      // Dynamic import to avoid SSR or initial load blocks
+      // 4. Dynamic import to avoid SSR or initial load blocks
       const html2canvas = (await import("html2canvas")).default;
 
       // Small delay to ensure any active transitions or states settle
-      await new Promise((resolve) => setTimeout(resolve, 200));
+      await new Promise((resolve) => setTimeout(resolve, 50));
 
       // Generate the canvas
       const canvas = await html2canvas(posterRef.current, {
         useCORS: true,
         allowTaint: false,
-        scale: 3, // Highly polished 3x resolution output
+        scale: 2, // Optimized 2x resolution output for faster generation
         logging: false,
+        imageTimeout: 0, // Disable slow image loading timeouts for maximum speed
         backgroundColor: "#020617",
         onclone: (clonedDoc) => {
           // Adjust any elements in the cloned document if necessary
@@ -349,9 +393,18 @@ export default function App() {
       console.error("Poster download error:", error);
       setErrorMessage("Une erreur s'est produite lors de la génération de l'affiche. Veuillez réessayer.");
     } finally {
-      // 2. Always restore stylesheets back to original state so UI is perfect
-      if (restoreStylesheets) {
-        restoreStylesheets();
+      // 5. Restore all original styles in the live DOM back to their original state
+      for (const { element, originalText } of savedStyles) {
+        element.textContent = originalText;
+      }
+      for (const { element, originalDisabled, tempStyle } of savedLinks) {
+        element.disabled = originalDisabled;
+        if (tempStyle) {
+          tempStyle.remove();
+        }
+      }
+      for (const { element, originalStyle } of inlineStyledElements) {
+        element.style.cssText = originalStyle;
       }
       setIsDownloading(false);
     }
@@ -359,6 +412,15 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-slate-950 bg-gradient-to-br from-slate-950 via-slate-900 to-indigo-950 text-slate-100 flex flex-col justify-between selection:bg-amber-500 selection:text-slate-950 relative overflow-x-hidden">
+      
+      {/* Centralized file input for triggering upload from both Poster and Controls */}
+      <input
+        type="file"
+        ref={fileInputRef}
+        onChange={handleFileSelect}
+        accept="image/*"
+        className="hidden"
+      />
       
       {/* Decorative top blurred ambient lighting */}
       <div className="absolute top-0 left-1/4 w-96 h-96 bg-amber-500/10 rounded-full blur-[120px] pointer-events-none" />
@@ -469,18 +531,34 @@ export default function App() {
             </div>
 
             {/* Poster frame wrapper */}
-            <div className="w-full flex justify-center p-2.5 bg-slate-900/40 border border-slate-800/80 rounded-3xl shadow-inner relative group">
-              <Poster
-                ref={posterRef}
-                photoUrl={photoUrl}
-                scale={scale}
-                posX={posX}
-                posY={posY}
-                rotation={rotation}
-                customSlogan={customSlogan}
-                customTicketPrice={customTicketPrice}
-                customDate={customDate}
-              />
+            <div 
+              ref={wrapperRef}
+              className="w-full flex justify-center items-center p-2 bg-slate-900/40 border border-slate-800/80 rounded-3xl shadow-inner relative overflow-hidden"
+              style={{ minHeight: `${720 * previewScale + 16}px` }}
+            >
+              <div 
+                style={{
+                  width: "540px",
+                  height: "720px",
+                  transform: `scale(${previewScale})`,
+                  transformOrigin: "center center",
+                  margin: `${(previewScale - 1) * 360}px ${(previewScale - 1) * 270}px`,
+                  flexShrink: 0
+                }}
+              >
+                <Poster
+                  ref={posterRef}
+                  photoUrl={photoUrl}
+                  scale={scale}
+                  posX={posX}
+                  posY={posY}
+                  rotation={rotation}
+                  customSlogan={customSlogan}
+                  customTicketPrice={customTicketPrice}
+                  customDate={customDate}
+                  onPhotoCircleClick={triggerFileSelect}
+                />
+              </div>
             </div>
 
             {/* Hint overlay */}
@@ -523,24 +601,15 @@ export default function App() {
             </div>
 
             <Controls
-              scale={scale}
-              posX={posX}
-              posY={posY}
-              rotation={rotation}
               customSlogan={customSlogan}
               customTicketPrice={customTicketPrice}
               customDate={customDate}
               hasPhoto={photoUrl !== null}
               isDownloading={isDownloading}
-              onScaleChange={setScale}
-              onPosXChange={setPosX}
-              onPosYChange={setPosY}
-              onRotationChange={setRotation}
               onSloganChange={setCustomSlogan}
               onTicketPriceChange={setCustomTicketPrice}
               onDateChange={setCustomDate}
-              onFileSelect={handleFileSelect}
-              onReset={handleReset}
+              onTriggerUpload={triggerFileSelect}
               onDownload={handleDownload}
               onLoadExamplePhoto={handleLoadExamplePhoto}
             />

@@ -24,6 +24,7 @@ interface PosterProps {
   customSlogan: string;
   customTicketPrice: string;
   customDate: string;
+  onPhotoCircleClick?: () => void;
 }
 
 export const Poster = React.forwardRef<HTMLDivElement, PosterProps>(({
@@ -34,16 +35,17 @@ export const Poster = React.forwardRef<HTMLDivElement, PosterProps>(({
   rotation,
   customSlogan,
   customTicketPrice,
-  customDate
+  customDate,
+  onPhotoCircleClick
 }, ref) => {
   return (
     <div
       ref={ref}
       id="legends-poster-canvas"
-      className="relative w-full aspect-[3/4] max-w-[600px] overflow-hidden rounded-2xl shadow-2xl border-4 select-none border-shadow font-sans"
+      className="relative overflow-hidden rounded-2xl shadow-2xl border-4 select-none border-shadow font-sans shrink-0"
       style={{
-        width: "100%",
-        maxWidth: "540px",
+        width: "540px",
+        height: "720px",
         borderColor: "#0f172a", // slate-900 hex
         backgroundColor: "#020617", // slate-950 hex
       }}
@@ -110,7 +112,7 @@ export const Poster = React.forwardRef<HTMLDivElement, PosterProps>(({
               style={{ color: "#fcd34d", fill: "#fcd34d" }} // amber-300 hex
             />
             <h1 
-              className="font-titan text-3xl sm:text-4xl uppercase tracking-tight text-stroke text-shadow-glow leading-none"
+              className="font-titan text-[38px] uppercase tracking-tight text-stroke text-shadow-glow leading-none"
               style={{ color: "#ffffff" }}
             >
               THE LEGENDS CHILL
@@ -130,7 +132,7 @@ export const Poster = React.forwardRef<HTMLDivElement, PosterProps>(({
 
           {/* Ribbon: UNE SORTIE DE FIN D'ANNÉE */}
           <div 
-            className="px-4 py-0.5 rounded-full shadow-md text-[10px] sm:text-xs font-bold tracking-wider uppercase mb-1 border"
+            className="px-4 py-0.5 rounded-full shadow-md text-xs font-bold tracking-wider uppercase mb-1 border"
             style={{ 
               backgroundColor: "rgba(15, 23, 42, 0.9)", // slate-900 rgba
               borderColor: "rgba(245, 158, 11, 0.4)", // amber-500 rgba
@@ -142,7 +144,7 @@ export const Poster = React.forwardRef<HTMLDivElement, PosterProps>(({
 
           {/* Subtitle cursive "intitulée" */}
           <p 
-            className="font-cursive text-xl sm:text-2xl rotate-[-4deg] my-[-2px]"
+            className="font-cursive text-2xl rotate-[-4deg] my-[-2px]"
             style={{ color: "#fcd34d" }} // amber-300 hex
           >
             intitulée
@@ -151,7 +153,7 @@ export const Poster = React.forwardRef<HTMLDivElement, PosterProps>(({
           {/* BIG TITLE: Time to chill! */}
           <div className="flex items-center justify-center space-x-1 mt-0.5 mb-1">
             <span 
-              className="font-marker text-4xl rotate-[-2deg] tracking-tight text-shadow-blue"
+              className="font-marker text-[40px] rotate-[-2deg] tracking-tight text-shadow-blue"
               style={{ color: "#67e8f9" }} // cyan-300 hex
             >
               Time
@@ -167,7 +169,7 @@ export const Poster = React.forwardRef<HTMLDivElement, PosterProps>(({
               TO
             </span>
             <span 
-              className="font-marker text-4xl rotate-[3deg] tracking-tight flex items-center text-shadow-red"
+              className="font-marker text-[40px] rotate-[3deg] tracking-tight flex items-center text-shadow-red"
               style={{ color: "#fb923c" }} // orange-400 hex
             >
               chill!
@@ -183,7 +185,7 @@ export const Poster = React.forwardRef<HTMLDivElement, PosterProps>(({
         <div className="relative flex-grow flex items-center justify-between my-2 px-1">
           
           {/* LEFT COLUMN: Floating Badges */}
-          <div className="flex flex-col space-y-4 z-10 w-28 sm:w-32 text-left">
+          <div className="flex flex-col space-y-4 z-10 w-32 text-left">
             {/* Ticket Price Badge */}
             <div 
               className="shadow-xl rounded-lg p-2 rotate-[-6deg] flex flex-col items-center transform transition hover:scale-105 duration-200 border-2"
@@ -265,56 +267,67 @@ export const Poster = React.forwardRef<HTMLDivElement, PosterProps>(({
           {/* CENTER: LARGE PHOTO CIRCLE */}
           <div className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 flex flex-col items-center z-20">
             <div 
-              className="w-44 h-44 sm:w-52 sm:h-52 rounded-full shadow-[0_10px_30px_rgba(0,0,0,0.8)] overflow-hidden relative group border-[6px]"
+              onClick={onPhotoCircleClick}
+              className="w-52 h-52 rounded-full shadow-[0_10px_30px_rgba(0,0,0,0.8)] overflow-hidden relative group border-[6px] cursor-pointer select-none"
               style={{ 
                 borderColor: "#fbbf24", // amber-400 hex
                 backgroundColor: "#0f172a" // slate-900 hex
               }}
+              title="Cliquez pour importer votre photo"
             >
               {photoUrl ? (
-                <div 
-                  className="w-full h-full relative cursor-grab active:cursor-grabbing"
-                  style={{
-                    transform: `translate(${posX}px, ${posY}px) scale(${scale}) rotate(${rotation}deg)`,
-                    transition: "transform 0.05s ease-out",
-                    transformOrigin: "center center"
-                  }}
-                >
-                  <img
-                    src={photoUrl}
-                    alt="Photo Importée"
-                    className="w-full h-full object-cover"
-                    referrerPolicy="no-referrer"
-                  />
-                </div>
+                <>
+                  <div 
+                    className="w-full h-full relative cursor-grab active:cursor-grabbing"
+                    style={{
+                      transform: `translate(${posX}px, ${posY}px) scale(${scale}) rotate(${rotation}deg)`,
+                      transition: "transform 0.05s ease-out",
+                      transformOrigin: "center center"
+                    }}
+                  >
+                    <img
+                      src={photoUrl}
+                      alt="Photo Importée"
+                      className="w-full h-full object-cover"
+                      referrerPolicy="no-referrer"
+                    />
+                  </div>
+                  {/* Modern, high-polished hover overlay with camera icon and animations */}
+                  <div className="absolute inset-0 bg-slate-950/70 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex flex-col items-center justify-center text-center p-4">
+                    <Camera className="w-6 h-6 text-amber-400 mb-1 animate-bounce" />
+                    <span className="text-[10px] font-bold tracking-wider text-white uppercase">
+                      Changer la photo
+                    </span>
+                  </div>
+                </>
               ) : (
                 <div 
-                  className="w-full h-full flex flex-col items-center justify-center p-4 text-center"
+                  className="w-full h-full flex flex-col items-center justify-center p-4 text-center hover:bg-slate-900/50 transition-colors duration-200"
                   style={{ 
                     background: "linear-gradient(to bottom, rgba(15, 23, 42, 0.95), #020617)", 
                     color: "#94a3b8" 
                   }}
                 >
                   <div 
-                    className="w-10 h-10 rounded-full border flex items-center justify-center mb-1.5 animate-pulse"
+                    className="w-10 h-10 rounded-full border flex items-center justify-center mb-1.5 animate-pulse group-hover:scale-110 group-hover:bg-slate-800 transition-all duration-200"
                     style={{ 
                       backgroundColor: "#1e293b", 
                       borderColor: "#334155" 
                     }}
                   >
-                    <Camera className="w-5 h-5" style={{ color: "#fbbf24" }} />
+                    <Camera className="w-5 h-5 group-hover:text-amber-300 transition-colors duration-200" style={{ color: "#fbbf24" }} />
                   </div>
                   <span 
-                    className="font-display font-extrabold text-[10px] uppercase tracking-widest"
+                    className="font-display font-extrabold text-[10px] uppercase tracking-widest group-hover:text-amber-400 transition-colors duration-200"
                     style={{ color: "#fcd34d" }}
                   >
-                    VOTRE PHOTO ICI
+                    CLIQUEZ POUR IMPORTER
                   </span>
                   <p 
-                    className="text-[8px] mt-1 max-w-[120px]"
+                    className="text-[8px] mt-1 max-w-[130px] leading-normal group-hover:text-slate-400 transition-colors duration-200"
                     style={{ color: "#64748b" }}
                   >
-                    Glissez votre photo et ajustez-la avec les contrôles
+                    Cliquez ici pour choisir une photo et l'ajuster
                   </p>
                 </div>
               )}
@@ -335,7 +348,7 @@ export const Poster = React.forwardRef<HTMLDivElement, PosterProps>(({
               }}
             >
               <h2 
-                className="font-titan text-lg sm:text-2xl text-stroke text-center tracking-wider leading-none text-shadow-glow uppercase whitespace-nowrap min-w-[120px]"
+                className="font-titan text-2xl text-stroke text-center tracking-wider leading-none text-shadow-glow uppercase whitespace-nowrap min-w-[120px]"
                 style={{ color: "#ffffff" }}
               >
                 {customSlogan || "J'Y SERAIS"}
@@ -347,7 +360,7 @@ export const Poster = React.forwardRef<HTMLDivElement, PosterProps>(({
           </div>
 
           {/* RIGHT COLUMN: Floating Badges */}
-          <div className="flex flex-col space-y-2 z-10 w-28 sm:w-32 text-right items-end">
+          <div className="flex flex-col space-y-2 z-10 w-32 text-right items-end">
             
             {/* Destination Info Blocks */}
             <div className="flex flex-col space-y-1 w-full text-right">
@@ -473,13 +486,13 @@ export const Poster = React.forwardRef<HTMLDivElement, PosterProps>(({
           {/* Top Sub-banner */}
           <div className="text-center border-b pb-1 mb-1" style={{ borderColor: "#1e293b" }}>
             <p 
-              className="font-display font-black text-[8px] sm:text-[9px] tracking-[0.25em] uppercase"
+              className="font-display font-black text-[9px] tracking-[0.25em] uppercase"
               style={{ color: "#fbbf24" }} // amber-400 hex
             >
               MUSIQUE • AMBIANCE • FUN • SOUVENIRS
             </p>
             <p 
-              className="text-[7px] italic font-medium mt-0.5 tracking-wide uppercase"
+              className="text-[8px] italic font-medium mt-0.5 tracking-wide uppercase"
               style={{ color: "#cbd5e1" }} // slate-300 hex
             >
               " UNE JOURNÉE POUR SE DÉTENDRE, S'AMUSER ET CRÉER DES SOUVENIRS INOUBLIABLES ! "
@@ -494,13 +507,13 @@ export const Poster = React.forwardRef<HTMLDivElement, PosterProps>(({
               <div className="flex items-center space-x-1 mb-1">
                 <Sparkles className="w-2.5 h-2.5" style={{ color: "#f43f5e" }} /> {/* rose-500 hex */}
                 <span 
-                  className="font-display font-black text-[8px] uppercase tracking-widest"
+                  className="font-display font-black text-[8.5px] uppercase tracking-widest"
                   style={{ color: "#f43f5e" }}
                 >
                   ACTIVITÉS PRÉVUES :
                 </span>
               </div>
-              <ul className="space-y-[1px] text-[7px] sm:text-[8px] font-medium" style={{ color: "#cbd5e1" }}>
+              <ul className="space-y-[1px] text-[8px] font-medium" style={{ color: "#cbd5e1" }}>
                 <li className="flex items-center">
                   <Dribbble className="w-2 h-2 mr-1 shrink-0" style={{ color: "#fb7185" }} /> 
                   MATCH DE FOOT
@@ -533,13 +546,13 @@ export const Poster = React.forwardRef<HTMLDivElement, PosterProps>(({
               <div className="flex items-center space-x-1 mb-1">
                 <PartyPopper className="w-2.5 h-2.5" style={{ color: "#fbbf24" }} />
                 <span 
-                  className="font-display font-black text-[8px] uppercase tracking-widest"
+                  className="font-display font-black text-[8.5px] uppercase tracking-widest"
                   style={{ color: "#fbbf24" }}
                 >
                   LES INVITÉS :
                 </span>
               </div>
-              <ul className="grid grid-cols-2 gap-x-1 gap-y-[1px] text-[7px] sm:text-[8px] font-medium leading-tight" style={{ color: "#cbd5e1" }}>
+              <ul className="grid grid-cols-2 gap-x-1 gap-y-[1px] text-[8px] font-medium leading-tight" style={{ color: "#cbd5e1" }}>
                 <li>• ZONE 246 💀</li>
                 <li>• NEW BOSS 👑</li>
                 <li>• EDAP/ISP 🎓</li>
@@ -553,12 +566,18 @@ export const Poster = React.forwardRef<HTMLDivElement, PosterProps>(({
           </div>
 
           {/* Catchy footer line */}
-          <div className="text-center mt-1 border-t pt-0.5" style={{ borderColor: "rgba(30, 41, 59, 0.4)" }}>
+          <div className="text-center mt-1 border-t pt-0.5 flex flex-col items-center justify-center" style={{ borderColor: "rgba(30, 41, 59, 0.4)" }}>
             <span 
               className="font-cursive text-xs tracking-wide animate-pulse"
               style={{ color: "#fcd34d" }}
             >
               Viens vivre le moment, viens Time to chill !
+            </span>
+            <span 
+              className="font-mono text-[7px] uppercase tracking-wider mt-1 opacity-70"
+              style={{ color: "#94a3b8" }}
+            >
+              Design Bokassa Ntwali Leader +243995697553
             </span>
           </div>
 
@@ -570,3 +589,4 @@ export const Poster = React.forwardRef<HTMLDivElement, PosterProps>(({
 });
 
 Poster.displayName = "Poster";
+
