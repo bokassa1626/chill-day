@@ -1,0 +1,33 @@
+@import url('https://fonts.googleapis.com/css2?family=Bangers&family=Caveat:wght@700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Permanent+Marker&family=Space+Grotesk:wght@700;800&family=Titan+One&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Space Grotesk", sans-serif;
+  --font-titan: "Titan One", sans-serif;
+  --font-marker: "Permanent Marker", cursive;
+  --font-cursive: "Caveat", cursive;
+  --font-bangers: "Bangers", cursive;
+  --font-mono: "JetBrains Mono", monospace;
+}
+
+/* Custom CSS utilities for text stroke and glowing effects */
+.text-stroke {
+  -webkit-text-stroke: 1.5px black;
+}
+.text-stroke-thick {
+  -webkit-text-stroke: 3px black;
+}
+.text-shadow-glow {
+  text-shadow: 0 0 8px rgba(251, 191, 36, 0.6), 0 0 20px rgba(251, 191, 36, 0.4);
+}
+.text-shadow-blue {
+  text-shadow: 0 0 8px rgba(6, 182, 212, 0.6), 0 0 20px rgba(6, 182, 212, 0.4);
+}
+.text-shadow-red {
+  text-shadow: 0 0 8px rgba(239, 68, 68, 0.6), 2px 2px 0px rgba(0, 0, 0, 1);
+}
+.border-shadow {
+  box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.8), 0 10px 25px rgba(0, 0, 0, 0.5);
+}
+

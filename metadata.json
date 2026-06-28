@@ -1,0 +1,8 @@
+{
+  "name": "Legends Chill Avatar Generator",
+  "description": "Personnalisez l'affiche de l'événement 'THE LEGENDS CHILL' avec votre propre photo et téléchargez votre affiche personnalisée.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
