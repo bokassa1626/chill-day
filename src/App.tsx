@@ -240,8 +240,35 @@ export default function App() {
     const savedStyles: { element: HTMLStyleElement; originalText: string }[] = [];
     const savedLinks: { element: HTMLLinkElement; originalDisabled: boolean; tempStyle?: HTMLStyleElement }[] = [];
     const inlineStyledElements: { element: HTMLElement; originalStyle: string }[] = [];
+    const originalGetComputedStyle = window.getComputedStyle;
 
     try {
+      // Override getComputedStyle temporarily to sanitize any oklch/oklab values on the fly
+      window.getComputedStyle = function(el, pseudoElt) {
+        const style = originalGetComputedStyle(el, pseudoElt);
+        return new Proxy(style, {
+          get(target, prop) {
+            const val = Reflect.get(target, prop);
+            if (typeof val === "string" && (val.includes("oklch") || val.includes("oklab"))) {
+              return val.replace(/okl(ch|ab)\((?:[^()]+|\([^()]*\))*\)/g, "rgb(30, 41, 59)");
+            }
+            if (typeof val === "function") {
+              if (prop === "getPropertyValue") {
+                return function(propertyName: string) {
+                  const v = target.getPropertyValue(propertyName);
+                  if (typeof v === "string" && (v.includes("oklch") || v.includes("oklab"))) {
+                    return v.replace(/okl(ch|ab)\((?:[^()]+|\([^()]*\))*\)/g, "rgb(30, 41, 59)");
+                  }
+                  return v;
+                };
+              }
+              return val.bind(target);
+            }
+            return val;
+          }
+        });
+      };
+
       // 1. Sanitize all inline styles in the DOM to avoid oklch/oklab
       const allElements = document.getElementsByTagName("*");
       for (let i = 0; i < allElements.length; i++) {
@@ -393,6 +420,9 @@ export default function App() {
       console.error("Poster download error:", error);
       setErrorMessage("Une erreur s'est produite lors de la génération de l'affiche. Veuillez réessayer.");
     } finally {
+      // Restore getComputedStyle
+      window.getComputedStyle = originalGetComputedStyle;
+
       // 5. Restore all original styles in the live DOM back to their original state
       for (const { element, originalText } of savedStyles) {
         element.textContent = originalText;
